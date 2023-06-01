@@ -77,6 +77,7 @@ enum {
     OPT_NO_AUDIO_PLAYBACK,
     OPT_NO_VIDEO_PLAYBACK,
     OPT_AUDIO_SOURCE,
+    OPT_TIME_LIMIT,
 };
 
 struct sc_option {
@@ -573,6 +574,12 @@ static const struct sc_option options[] = {
                 "to find the IP address of the current device (typically "
                 "connected over USB), enables TCP/IP mode, then connects to "
                 "this address before starting.",
+    },
+    {
+        .longopt_id = OPT_TIME_LIMIT,
+        .longopt = "time-limit",
+        .argdesc = "seconds",
+        .text = "Set the maximum mirroring time, in seconds.",
     },
     {
         .longopt_id = OPT_TUNNEL_HOST,
@@ -1613,6 +1620,18 @@ parse_audio_source(const char *optarg, enum sc_audio_source *source) {
 }
 
 static bool
+parse_time_limit(const char *s, sc_tick *tick) {
+    long value;
+    bool ok = parse_integer_arg(s, &value, false, 0, 0x7FFFFFFF, "time limit");
+    if (!ok) {
+        return false;
+    }
+
+    *tick = SC_TICK_FROM_SEC(value);
+    return true;
+}
+
+static bool
 parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                        const char *optstring, const struct option *longopts) {
     struct scrcpy_options *opts = &args->opts;
@@ -1941,6 +1960,11 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                 break;
             case OPT_AUDIO_SOURCE:
                 if (!parse_audio_source(optarg, &opts->audio_source)) {
+                    return false;
+                }
+                break;
+            case OPT_TIME_LIMIT:
+                if (!parse_time_limit(optarg, &opts->time_limit)) {
                     return false;
                 }
                 break;
